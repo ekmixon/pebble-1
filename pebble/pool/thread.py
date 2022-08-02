@@ -162,10 +162,11 @@ def worker_thread(context):
     queue = context.task_queue
     parameters = context.worker_parameters
 
-    if parameters.initializer is not None:
-        if not run_initializer(parameters.initializer, parameters.initargs):
-            context.state = ERROR
-            return
+    if parameters.initializer is not None and not run_initializer(
+        parameters.initializer, parameters.initargs
+    ):
+        context.state = ERROR
+        return
 
     for task in get_next_task(context, parameters.max_tasks):
         execute_next_task(task)

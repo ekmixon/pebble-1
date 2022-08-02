@@ -37,11 +37,10 @@ def synchronized(*args):
     """
     if callable(args[0]):
         return decorate_synchronized(args[0], _synchronized_lock)
-    else:
-        def wrap(function):
-            return decorate_synchronized(function, args[0])
+    def wrap(function):
+        return decorate_synchronized(function, args[0])
 
-        return wrap
+    return wrap
 
 
 def decorate_synchronized(function, lock):

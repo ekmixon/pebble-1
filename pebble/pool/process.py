@@ -159,14 +159,13 @@ def task_scheduler_loop(pool_manager):
         while context.alive and not global_shutdown:
             task = task_queue.get()
 
-            if task is not None:
-                if task.future.cancelled():
-                    task.set_running_or_notify_cancel()
-                    task_queue.task_done()
-                else:
-                    pool_manager.schedule(task)
-            else:
+            if task is None:
                 task_queue.task_done()
+            elif task.future.cancelled():
+                task.set_running_or_notify_cancel()
+                task_queue.task_done()
+            else:
+                pool_manager.schedule(task)
     except BrokenProcessPool:
         context.state = ERROR
 
@@ -265,9 +264,7 @@ class PoolManager:
 
     def find_expired_task(self, worker_id):
         tasks = tuple(self.task_manager.tasks.values())
-        running_tasks = tuple(t for t in tasks if t.worker_id != 0)
-
-        if running_tasks:
+        if running_tasks := tuple(t for t in tasks if t.worker_id != 0):
             return task_worker_lookup(running_tasks, worker_id)
         else:
             raise BrokenProcessPool("All workers expired")
@@ -415,9 +412,10 @@ def worker_process(params, channel):
 
     channel.initialize()
 
-    if params.initializer is not None:
-        if not run_initializer(params.initializer, params.initargs):
-            os._exit(1)
+    if params.initializer is not None and not run_initializer(
+        params.initializer, params.initargs
+    ):
+        os._exit(1)
 
     try:
         for task in worker_get_next_task(channel, params.max_tasks):
@@ -458,12 +456,11 @@ def fetch_task(channel):
 def task_transaction(channel):
     """Ensures a task is fetched and acknowledged atomically."""
     with channel.lock:
-        if channel.poll(0):
-            task = channel.recv()
-            channel.send(Acknowledgement(os.getpid(), task.id))
-        else:
+        if not channel.poll(0):
             raise RuntimeError("Race condition between workers")
 
+        task = channel.recv()
+        channel.send(Acknowledgement(os.getpid(), task.id))
     return task
 
 

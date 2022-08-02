@@ -146,15 +146,17 @@ class Task:
 
     @property
     def started(self):
-        return bool(self.timestamp > 0)
+        return self.timestamp > 0
 
     def set_running_or_notify_cancel(self):
-        if hasattr(self.future, 'map_future'):
-            if not self.future.map_future.done():
-                try:
-                    self.future.map_future.set_running_or_notify_cancel()
-                except RuntimeError:
-                    pass
+        if (
+            hasattr(self.future, 'map_future')
+            and not self.future.map_future.done()
+        ):
+            try:
+                self.future.map_future.set_running_or_notify_cancel()
+            except RuntimeError:
+                pass
 
         try:
             self.future.set_running_or_notify_cancel()
@@ -218,12 +220,10 @@ def iter_chunks(chunksize, *iterables):
     iterables = iter(zip(*iterables))
 
     while 1:
-        chunk = tuple(islice(iterables, chunksize))
-
-        if not chunk:
+        if chunk := tuple(islice(iterables, chunksize)):
+            yield chunk
+        else:
             return
-
-        yield chunk
 
 
 def chunk_result(future, timeout):

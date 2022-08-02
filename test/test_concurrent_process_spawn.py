@@ -45,8 +45,7 @@ def error_decorated():
 
 @concurrent.process(context=mp_context)
 def pickling_error_decorated():
-    event = threading.Event()
-    return event
+    return threading.Event()
 
 
 @concurrent.process(context=mp_context)

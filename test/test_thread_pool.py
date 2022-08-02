@@ -75,9 +75,8 @@ class TestThreadPool(unittest.TestCase):
         """Thread Pool multiple futures."""
         futures = []
         with ThreadPool(max_workers=1) as pool:
-            for _ in range(5):
-                futures.append(pool.schedule(function, args=[1]))
-        self.assertEqual(sum([t.result() for t in futures]), 5)
+            futures.extend(pool.schedule(function, args=[1]) for _ in range(5))
+        self.assertEqual(sum(t.result() for t in futures), 5)
 
     def test_thread_pool_callback(self):
         """Thread Pool results are forwarded to the callback."""
@@ -119,17 +118,15 @@ class TestThreadPool(unittest.TestCase):
         """Thread Pool multiple futures are handled by different threades."""
         futures = []
         with ThreadPool(max_workers=2) as pool:
-            for _ in range(0, 5):
-                futures.append(pool.schedule(tid_function))
-        self.assertEqual(len(set([t.result() for t in futures])), 2)
+            futures.extend(pool.schedule(tid_function) for _ in range(5))
+        self.assertEqual(len({t.result() for t in futures}), 2)
 
     def test_thread_pool_tasks_limit(self):
         """Thread Pool future limit is honored."""
         futures = []
         with ThreadPool(max_workers=1, max_tasks=2) as pool:
-            for _ in range(0, 4):
-                futures.append(pool.schedule(tid_function))
-        self.assertEqual(len(set([t.result() for t in futures])), 2)
+            futures.extend(pool.schedule(tid_function) for _ in range(4))
+        self.assertEqual(len({t.result() for t in futures}), 2)
 
     def test_thread_pool_initializer(self):
         """Thread Pool initializer is correctly run."""
@@ -159,10 +156,8 @@ class TestThreadPool(unittest.TestCase):
 
     def test_thread_pool_close_futures(self):
         """Thread Pool all futures are performed on close."""
-        futures = []
         pool = ThreadPool(max_workers=1)
-        for index in range(10):
-            futures.append(pool.schedule(function, args=[index]))
+        futures = [pool.schedule(function, args=[index]) for index in range(10)]
         pool.close()
         pool.join()
         map(self.assertTrue, [t.done() for t in futures])
@@ -177,10 +172,8 @@ class TestThreadPool(unittest.TestCase):
 
     def test_thread_pool_stop_futures(self):
         """Thread Pool not all futures are performed on stop."""
-        futures = []
         pool = ThreadPool(max_workers=1)
-        for index in range(10):
-            futures.append(pool.schedule(long_function, args=[index]))
+        futures = [pool.schedule(long_function, args=[index]) for index in range(10)]
         pool.stop()
         pool.join()
         self.assertTrue(len([t for t in futures if not t.done()]) > 0)

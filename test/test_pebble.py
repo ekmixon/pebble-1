@@ -132,9 +132,7 @@ class TestWaitForThreads(unittest.TestCase):
 
     def test_waitforthreads_multiple(self):
         """Waitforthreads waits for multiple threads."""
-        threads = []
-        for _ in range(5):
-            threads.append(launch_thread(None, thread_function, True, 0.01))
+        threads = [launch_thread(None, thread_function, True, 0.01) for _ in range(5)]
         time.sleep(0.1)
         self.assertEqual(list(waitforthreads(threads)), threads)
 

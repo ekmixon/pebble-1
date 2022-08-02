@@ -136,9 +136,8 @@ class TestProcessPool(unittest.TestCase):
         """Process Pool Spawn multiple futures."""
         futures = []
         with ProcessPool(max_workers=1, context=mp_context) as pool:
-            for _ in range(5):
-                futures.append(pool.schedule(function, args=[1]))
-        self.assertEqual(sum([f.result() for f in futures]), 5)
+            futures.extend(pool.schedule(function, args=[1]) for _ in range(5))
+        self.assertEqual(sum(f.result() for f in futures), 5)
 
     def test_process_pool_callback(self):
         """Process Pool Spawn result is forwarded to the callback."""
@@ -214,17 +213,15 @@ class TestProcessPool(unittest.TestCase):
         """Process Pool Spawn futures are handled by different processes."""
         futures = []
         with ProcessPool(max_workers=2, context=mp_context) as pool:
-            for _ in range(0, 5):
-                futures.append(pool.schedule(pid_function))
-        self.assertEqual(len(set([f.result() for f in futures])), 2)
+            futures.extend(pool.schedule(pid_function) for _ in range(5))
+        self.assertEqual(len({f.result() for f in futures}), 2)
 
     def test_process_pool_future_limit(self):
         """Process Pool Spawn tasks limit is honored."""
         futures = []
         with ProcessPool(max_workers=1, max_tasks=2, context=mp_context) as pool:
-            for _ in range(0, 4):
-                futures.append(pool.schedule(pid_function))
-        self.assertEqual(len(set([f.result() for f in futures])), 2)
+            futures.extend(pool.schedule(pid_function) for _ in range(4))
+        self.assertEqual(len({f.result() for f in futures}), 2)
 
     def test_process_pool_stop_timeout(self):
         """Process Pool Spawn workers are stopped if future timeout."""
@@ -272,10 +269,8 @@ class TestProcessPool(unittest.TestCase):
 
     def test_process_pool_close_futures(self):
         """Process Pool Spawn all futures are performed on close."""
-        futures = []
         pool = ProcessPool(max_workers=1, context=mp_context)
-        for index in range(10):
-            futures.append(pool.schedule(function, args=[index]))
+        futures = [pool.schedule(function, args=[index]) for index in range(10)]
         pool.close()
         pool.join()
         map(self.assertTrue, [f.done() for f in futures])
@@ -290,10 +285,8 @@ class TestProcessPool(unittest.TestCase):
 
     def test_process_pool_stop_futures(self):
         """Process Pool Spawn not all futures are performed on stop."""
-        futures = []
         pool = ProcessPool(max_workers=1, context=mp_context)
-        for index in range(10):
-            futures.append(pool.schedule(function, args=[index]))
+        futures = [pool.schedule(function, args=[index]) for index in range(10)]
         pool.stop()
         pool.join()
         self.assertTrue(len([f for f in futures if not f.done()]) > 0)
